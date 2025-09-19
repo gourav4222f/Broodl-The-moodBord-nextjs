@@ -60,6 +60,12 @@ export default function Calender(props) {
         }
     }
 
+    function handleGoToToday() {
+        const t = new Date()
+        setSelectedYear(t.getFullYear())
+        setSelectedMonth(monthsArr[t.getMonth()])
+    }
+
 
     const numericMonth = monthsArr.indexOf(selectedMonth)
     const data = campleteData?.[selectedYear]?.[numericMonth] || {};
@@ -79,9 +85,12 @@ export default function Calender(props) {
 
     return (
         <div className=' flex flex-col gap-2 '>
-            <div className=' grid grid-cols-3 gap-4'>
+            <div className=' grid grid-cols-3 gap-4 items-center'>
                 <button onClick={() => { handleIncrementMonths(-1) }} className=' text-3xl sm:text-4xl rounded-full px-5 bg-indigo-200 text-indigo-600 hover:bg-indigo-700 hover:text-indigo-200 duration-200 mr-auto'>{`<`}</button>
-                <p className={' text-center capitalize text-gradient ' + fugaz.className}>{`${selectedYear}  , ${selectedMonth}`}</p>
+                <div className='flex flex-col items-center gap-2'>
+                    <p className={' text-center capitalize text-gradient ' + fugaz.className}>{`${selectedYear}  , ${selectedMonth}`}</p>
+                    <button onClick={handleGoToToday} className='text-xs px-3 py-1 border border-indigo-400 text-indigo-600 rounded-full hover:bg-indigo-100 duration-200'>Current</button>
+                </div>
                 <button onClick={() => { handleIncrementMonths(+1) }} className=' text-3xl sm:text-4xl rounded-full px-5 bg-indigo-200 text-indigo-600 hover:bg-indigo-700 hover:text-indigo-200 duration-200 ml-auto'>{`>`}</button>
             </div>
             <div className='flex flex-col overflow-hidden gap-1 py-4 sm:py-6 md:py-10'>

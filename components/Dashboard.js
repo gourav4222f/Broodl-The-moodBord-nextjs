@@ -14,6 +14,7 @@ export default function Dashboard() {
 
     const { currentUser, userDataObj, setuserDataObj, loading } = useAuth()
     const [data, setData] = useState({})
+    const [filter, setFilter] = useState('all') // week | month | year | all
     const now = new Date()
 
 
@@ -48,23 +49,96 @@ export default function Dashboard() {
     }
 
 
-    function countValues() {
-        let total_number_of_days = 0
-        let sum_moods = 0
-        for (let year in data) {
-            for (let month in data[year]) {
-                for (let day in data[year][month]) {
-                    let days_mood = data[year][month][day];
-                    total_number_of_days++
-                    sum_moods += days_mood
+    function getMoodAt(dateObj) {
+        const y = dateObj.getFullYear()
+        const m = dateObj.getMonth()
+        const d = dateObj.getDate()
+        return data?.[y]?.[m]?.[d]
+    }
+
+    function computeAll() {
+        let totalDays = 0
+        let sum = 0
+        for (const y of Object.keys(data || {})) {
+            for (const m of Object.keys(data[y] || {})) {
+                for (const d of Object.keys(data[y][m] || {})) {
+                    const mood = data[y][m][d]
+                    if (typeof mood === 'number') {
+                        totalDays++
+                        sum += mood
+                    }
                 }
             }
         }
-        return { num_day: total_number_of_days, Average_mood:( sum_moods / total_number_of_days )}
+        return { num_day: totalDays, Average_mood: totalDays ? (sum / totalDays) : 0 }
+    }
+
+    function computeYear() {
+        const y = now.getFullYear()
+        let totalDays = 0
+        let sum = 0
+        const months = data?.[y] || {}
+        for (const m of Object.keys(months)) {
+            const days = months[m] || {}
+            for (const d of Object.keys(days)) {
+                const mood = days[d]
+                if (typeof mood === 'number') {
+                    totalDays++
+                    sum += mood
+                }
+            }
+        }
+        return { num_day: totalDays, Average_mood: totalDays ? (sum / totalDays) : 0 }
+    }
+
+    function computeMonth() {
+        const y = now.getFullYear()
+        const m = now.getMonth()
+        const days = data?.[y]?.[m] || {}
+        let totalDays = 0
+        let sum = 0
+        for (const d of Object.keys(days)) {
+            const mood = days[d]
+            if (typeof mood === 'number') {
+                totalDays++
+                sum += mood
+            }
+        }
+        return { num_day: totalDays, Average_mood: totalDays ? (sum / totalDays) : 0 }
+    }
+
+    function computeWeek() {
+        // Last 7 days including today
+        let totalDays = 0
+        let sum = 0
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(now)
+            date.setDate(now.getDate() - i)
+            const mood = getMoodAt(date)
+            if (typeof mood === 'number') {
+                totalDays++
+                sum += mood
+            }
+        }
+        return { num_day: totalDays, Average_mood: totalDays ? (sum / totalDays) : 0 }
+    }
+
+    function getStatuses() {
+        switch (filter) {
+            case 'week':
+                return computeWeek()
+            case 'month':
+                return computeMonth()
+            case 'year':
+                return computeYear()
+            case 'all':
+            default:
+                return computeAll()
+        }
     }
 
     const statuses = {
-        ...countValues(),
+        ...getStatuses(),
         time_remaining: `${23 - now.getHours()}H ${60 - now.getMinutes()}M`,
     }
     const moods = {
@@ -94,16 +168,32 @@ export default function Dashboard() {
     } else {
         children = (
             <div className='flex flex-col flex-1 gap-8 sm:gap-12 md:gap-16'>
-                <div className='grid grid-cols-3 bg-indigo-50 text-indigo-500 rounded-lg p-4 gap-4'>
-                    {Object.keys(statuses).map((Status, StatusIndex) => {
-                        return (
-                            <div key={StatusIndex} className='flex flex-col gap-1 sm:gap-2'>
-                                <p className='truncate capitalize font-medium text-xs sm:text-sm'>{Status.replaceAll('_', " ")}</p>
-                                <p className={'text-base truncate ' + fugaz.className}>{statuses[Status]}</p>
-                            </div>
-                        )
-                    })}
+                <div className='flex flex-col gap-3'>
+                    <div className='flex gap-2 flex-wrap'>
+                        {['week','month','year','all'].map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`px-3 py-1 rounded-full border text-sm capitalize ${filter===f ? 'bg-indigo-600 text-white border-indigo-600' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-100'}`}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
+                    <div className='grid grid-cols-3 bg-indigo-50 text-indigo-500 rounded-lg p-4 gap-4'>
+                        {Object.keys(statuses).map((Status, StatusIndex) => {
+                            return (
+                                <div key={StatusIndex} className='flex flex-col gap-1 sm:gap-2'>
+                                    <p className='truncate capitalize font-medium text-xs sm:text-sm'>{Status.replaceAll('_', " ")}</p>
+                                    <p className={'text-base truncate ' + fugaz.className}>{
+                                        Status === 'Average_mood' ? (Number.isFinite(statuses[Status]) ? statuses[Status].toFixed(2) : '-') : statuses[Status]
+                                    }</p>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
+                
                 <h4 className={'text-5xl sm:text-6xl md:text-7xl text-center ' + fugaz.className}>
                     How do you <span className='text-gradient'>feel</span> today?
                 </h4>
